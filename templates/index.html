@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SpendSense — AI Expense Tracker</title>
+  <meta name="description" content="AI-powered daily expense tracker with RAG intelligence, ML forecasting, and anomaly detection.">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/static/css/main.css">
+  <link rel="stylesheet" href="/static/css/animations.css">
+</head>
+<body>
+
+<!-- ─────────────────── APP LAYOUT ─────────────────── -->
+<div class="app-layout">
+
+  <!-- ══ SIDEBAR ══════════════════════════════════════════ -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">💰</div>
+      <div>
+        <div class="logo-text">SpendSense</div>
+        <div class="logo-sub">AI Expense Tracker</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-item active" id="nav-dashboard" data-section="dashboard">
+        <span class="nav-icon">📊</span> Dashboard
+      </div>
+      <div class="nav-item" id="nav-expenses" data-section="expenses">
+        <span class="nav-icon">💳</span> Expenses
+      </div>
+      <div class="nav-item" id="nav-analytics" data-section="analytics">
+        <span class="nav-icon">📈</span> Analytics
+      </div>
+      <div class="nav-item" id="nav-budgets" data-section="budgets">
+        <span class="nav-icon">🎯</span> Budgets
+      </div>
+      <div class="nav-item" id="nav-assistant" data-section="assistant">
+        <span class="nav-icon">🤖</span> AI Assistant
+        <span style="margin-left:auto;font-size:10px;padding:2px 6px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:20px;color:#fff;font-weight:700;">RAG</span>
+      </div>
+      <div class="nav-item" id="nav-settings" data-section="settings">
+        <span class="nav-icon">⚙️</span> Settings
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="btn btn-secondary" id="seed-btn" style="width:100%;justify-content:center;font-size:12.5px;">
+        🌱 Load Sample Data
+      </button>
+    </div>
+  </aside>
+
+  <!-- ══ MAIN ══════════════════════════════════════════════ -->
+  <div class="main-content">
+
+    <!-- Top Header -->
+    <header class="top-header">
+      <div class="header-left">
+        <h1 id="page-title">Dashboard</h1>
+        <p id="page-sub">Your financial overview at a glance</p>
+      </div>
+      <div class="header-right">
+        <button class="btn btn-primary" id="add-expense-btn">
+          <span>＋</span> Add Expense
+        </button>
+      </div>
+    </header>
+
+    <!-- Content -->
+    <div class="content-area">
+
+      <!-- ╔══════════════════════════════════════╗ -->
+      <!-- ║  SECTION: DASHBOARD                  ║ -->
+      <!-- ╚══════════════════════════════════════╝ -->
+      <section class="section active" id="section-dashboard">
+
+        <!-- KPI Grid -->
+        <div class="kpi-grid stagger-children">
+          <div class="kpi-card indigo hover-lift">
+            <div class="kpi-label">Total Spending</div>
+            <div class="kpi-value indigo" id="kpi-total">$0.00</div>
+            <div class="kpi-sub">All time</div>
+          </div>
+          <div class="kpi-card violet hover-lift">
+            <div class="kpi-label">This Month</div>
+            <div class="kpi-value violet" id="kpi-month">$0.00</div>
+            <div class="kpi-sub" id="kpi-month-change">vs. last month</div>
+          </div>
+          <div class="kpi-card emerald hover-lift">
+            <div class="kpi-label">This Week</div>
+            <div class="kpi-value emerald" id="kpi-week">$0.00</div>
+            <div class="kpi-sub">Last 7 days</div>
+          </div>
+          <div class="kpi-card amber hover-lift">
+            <div class="kpi-label">Daily Average</div>
+            <div class="kpi-value amber" id="kpi-avg">$0.00</div>
+            <div class="kpi-sub">Per day</div>
+          </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="charts-grid">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">📈 Spending Over Time</span>
+              <span style="font-size:11.5px;color:var(--text-muted);">Last 30 days</span>
+            </div>
+            <div class="chart-container">
+              <canvas id="spending-line-chart"></canvas>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">🍩 By Category</span>
+            </div>
+            <div class="chart-container">
+              <canvas id="category-donut-chart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Transactions + ML Insights -->
+        <div style="display:grid;grid-template-columns:3fr 2fr;gap:16px;">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">⏱ Recent Transactions</span>
+              <button class="btn btn-secondary btn-sm" id="add-expense-btn2">+ Add</button>
+            </div>
+            <div id="recent-transactions">
+              <div class="empty-state">
+                <div class="icon">💸</div>
+                <h3>No transactions yet</h3>
+                <p>Click "Load Sample Data" to demo the app instantly.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">🧠 ML Insights</span>
+            </div>
+            <div id="ml-insights">
+              <div class="empty-state" style="padding:30px 10px;">
+                <div class="icon" style="font-size:32px;">🧠</div>
+                <p style="font-size:12px;">Add expenses to unlock AI-powered insights.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ╔══════════════════════════════════════╗ -->
+      <!-- ║  SECTION: EXPENSES                   ║ -->
+      <!-- ╚══════════════════════════════════════╝ -->
+      <section class="section" id="section-expenses">
+        <div class="section-header">
+          <h2 class="section-title">Expenses</h2>
+          <button class="btn btn-primary" id="add-expense-btn-exp" onclick="document.getElementById('add-expense-btn').click()">
+            ＋ Add Expense
+          </button>
+        </div>
+
+        <!-- Search & Filters -->
+        <div class="card" style="margin-bottom:20px;">
+          <div class="search-bar">
+            <div class="search-input-wrap">
+              <span class="search-icon">🔍</span>
+              <input type="text" class="form-control" id="search-input" placeholder="Search descriptions…">
+            </div>
+            <select class="form-control" id="filter-category" style="width:180px;">
+              <option value="">All Categories</option>
+            </select>
+            <input type="date" class="form-control" id="filter-start" style="width:160px;">
+            <input type="date" class="form-control" id="filter-end" style="width:160px;">
+            <button class="btn btn-secondary btn-sm" id="clear-filters-btn">Clear</button>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="card" style="padding:0;">
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Description</th>
+                  <th>Category</th>
+                  <th>Amount</th>
+                  <th>Type</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="expenses-tbody">
+                <tr><td colspan="6">
+                  <div class="empty-state">
+                    <div class="icon">💸</div>
+                    <h3>No expenses yet</h3>
+                    <p>Click "Load Sample Data" in the sidebar to get started.</p>
+                  </div>
+                </td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ╔══════════════════════════════════════╗ -->
+      <!-- ║  SECTION: ANALYTICS                  ║ -->
+      <!-- ╚══════════════════════════════════════╝ -->
+      <section class="section" id="section-analytics">
+        <div class="section-header">
+          <h2 class="section-title">Analytics</h2>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-secondary btn-sm period-btn active" data-days="7">7d</button>
+            <button class="btn btn-secondary btn-sm period-btn" data-days="30">30d</button>
+            <button class="btn btn-secondary btn-sm period-btn" data-days="90">90d</button>
+          </div>
+        </div>
+
+        <!-- Charts grid -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+          <div class="card">
+            <div class="card-header"><span class="card-title">📈 Spending Trend</span></div>
+            <div class="chart-container"><canvas id="analytics-line-chart"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">🍩 Category Breakdown</span></div>
+            <div class="chart-container"><canvas id="analytics-donut-chart"></canvas></div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">🔮 ML Forecast</span>
+              <span class="card-title" id="forecast-summary" style="font-size:11px;text-transform:none;letter-spacing:0;color:var(--text-muted);"></span>
+            </div>
+            <div class="chart-container"><canvas id="forecast-chart"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">📅 Monthly by Category</span></div>
+            <div class="chart-container"><canvas id="monthly-bar-chart"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Anomaly Detection -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">⚠️ Anomaly Detection</span>
+            <span style="font-size:11.5px;color:var(--text-muted);">Powered by Isolation Forest (ML)</span>
+          </div>
+          <div id="anomaly-list">
+            <div class="empty-state" style="padding:30px;">
+              <div class="icon" style="font-size:32px;">🔍</div>
+              <p>No data to analyse yet.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ╔══════════════════════════════════════╗ -->
+      <!-- ║  SECTION: BUDGETS                    ║ -->
+      <!-- ╚══════════════════════════════════════╝ -->
+      <section class="section" id="section-budgets">
+        <div class="section-header">
+          <h2 class="section-title">Budgets</h2>
+        </div>
+
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;">
+          <!-- Left: Budget cards + chart -->
+          <div>
+            <div class="card" style="margin-bottom:16px;">
+              <div class="card-header"><span class="card-title">📊 Budget vs. Actual</span></div>
+              <div class="chart-container" style="height:240px;">
+                <canvas id="budget-bar-chart"></canvas>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><span class="card-title">🎯 Category Budgets</span></div>
+              <div id="budget-cards">
+                <div class="empty-state" style="padding:30px;">
+                  <div class="icon" style="font-size:36px;">🎯</div>
+                  <h3>No budgets set</h3>
+                  <p>Use the form to create category budgets.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Set budget form -->
+          <div>
+            <div class="card">
+              <div class="card-header"><span class="card-title">➕ Set Budget</span></div>
+              <form id="budget-form">
+                <div class="form-group">
+                  <label class="form-label">Category</label>
+                  <select class="form-control category-select" id="budget-category" required>
+                    <option value="">Select category…</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Monthly Limit ($)</label>
+                  <input type="number" class="form-control" id="budget-amount" min="1" step="0.01" placeholder="e.g. 500.00" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">
+                  💾 Save Budget
+                </button>
+              </form>
+            </div>
+
+            <!-- Burn Rate hint -->
+            <div class="card" style="margin-top:16px;">
+              <div class="card-header"><span class="card-title">🔥 Burn Rate</span></div>
+              <p style="font-size:12.5px;color:var(--text-muted);line-height:1.6;">
+                The burn rate shows how fast you are spending your budget. It is computed by the ML service using your daily average and projects whether you will exceed limits by month-end.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ╔══════════════════════════════════════╗ -->
+      <!-- ║  SECTION: AI ASSISTANT (RAG)         ║ -->
+      <!-- ╚══════════════════════════════════════╝ -->
+      <section class="section" id="section-assistant">
+        <div class="section-header">
+          <h2 class="section-title">AI Finance Assistant</h2>
+          <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-muted);">
+            <span style="width:8px;height:8px;border-radius:50%;background:var(--accent);display:inline-block;box-shadow:0 0 8px var(--accent);"></span>
+            Powered by RAG · TF-IDF Retrieval · Intent-Aware NLG
+          </div>
+        </div>
+
+        <div class="chat-layout">
+          <!-- Chat window -->
+          <div class="card" style="padding:0;display:flex;flex-direction:column;overflow:hidden;">
+            <div class="card-header" style="padding:16px 20px;border-bottom:1px solid var(--border);margin-bottom:0;flex-shrink:0;">
+              <span class="card-title">💬 Chat</span>
+              <span style="font-size:11.5px;color:var(--text-muted);">Ask anything about your finances</span>
+            </div>
+            <div class="chat-messages" id="chat-messages"></div>
+            <div class="chat-input-area">
+              <textarea class="chat-input" id="chat-input" placeholder="Ask me anything… e.g. 'How much did I spend on food?'" rows="1"></textarea>
+              <button class="chat-send-btn" id="chat-send-btn" title="Send">➤</button>
+            </div>
+          </div>
+
+          <!-- Suggestions panel -->
+          <div>
+            <div class="card" style="margin-bottom:16px;">
+              <div class="card-header"><span class="card-title">💡 Suggested Questions</span></div>
+              <div id="suggestion-chips" class="chat-suggestions">
+                <div class="skeleton" style="height:36px;margin-bottom:8px;"></div>
+                <div class="skeleton" style="height:36px;margin-bottom:8px;"></div>
+                <div class="skeleton" style="height:36px;margin-bottom:8px;"></div>
+                <div class="skeleton" style="height:36px;"></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><span class="card-title">🧠 How RAG Works</span></div>
+              <div style="font-size:12.5px;color:var(--text-muted);line-height:1.8;">
+                <div style="margin-bottom:8px;">
+                  <strong style="color:var(--primary);">1. Retrieve</strong><br>
+                  Your query is vectorised using TF-IDF. Cosine similarity finds the most relevant expense records and financial knowledge.
+                </div>
+                <div style="margin-bottom:8px;">
+                  <strong style="color:var(--secondary);">2. Augment</strong><br>
+                  Retrieved documents are combined with your question to provide grounded context.
+                </div>
+                <div>
+                  <strong style="color:var(--accent);">3. Generate</strong><br>
+                  An intent-aware NLG engine crafts a personalised, data-driven answer.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ╔══════════════════════════════════════╗ -->
+      <!-- ║  SECTION: SETTINGS                   ║ -->
+      <!-- ╚══════════════════════════════════════╝ -->
+      <section class="section" id="section-settings">
+        <div class="section-header">
+          <h2 class="section-title">Settings</h2>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:900px;">
+          <div class="card">
+            <div class="card-header"><span class="card-title">🎨 Appearance</span></div>
+            <div class="form-group">
+              <label class="form-label">Theme</label>
+              <select class="form-control" disabled>
+                <option>Dark (Default)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Currency</label>
+              <select class="form-control" id="currency-select">
+                <option value="USD" selected>USD ($)</option>
+                <option value="EUR">EUR (€)</option>
+                <option value="GBP">GBP (£)</option>
+                <option value="INR">INR (₹)</option>
+                <option value="JPY">JPY (¥)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><span class="card-title">🗄️ Data Management</span></div>
+            <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.6;">
+              All data is stored locally in an SQLite database on your machine. No data is sent to external services.
+            </p>
+            <button class="btn btn-secondary" style="width:100%;justify-content:center;margin-bottom:10px;" id="seed-btn-settings">
+              🌱 Load Sample Data
+            </button>
+            <button class="btn btn-danger" style="width:100%;justify-content:center;" id="clear-all-btn">
+              🗑️ Clear All Data
+            </button>
+          </div>
+
+          <!-- CSV Upload card -->
+          <div class="card" style="grid-column:1 / -1;">
+            <div class="card-header">
+              <span class="card-title">📤 Import Expenses (CSV)</span>
+              <label for="csv-file-input" class="btn btn-primary btn-sm" style="cursor:pointer;">Choose CSV File</label>
+            </div>
+
+            <!-- hidden file picker -->
+            <input type="file" id="csv-file-input" accept=".csv" style="display:none;">
+
+            <!-- selected file name + upload btn -->
+            <div id="csv-upload-bar" style="display:none;align-items:center;gap:12px;margin-bottom:16px;padding:10px 14px;
+                 background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);border-radius:8px;">
+              <span style="font-size:18px;">📄</span>
+              <span id="csv-filename" style="flex:1;font-size:13.5px;font-weight:600;color:var(--text-primary);"></span>
+              <button class="btn btn-success btn-sm" id="csv-upload-btn">⬆️ Upload &amp; Import</button>
+              <button class="btn btn-secondary btn-sm" id="csv-cancel-btn">✕ Cancel</button>
+            </div>
+
+            <!-- upload result -->
+            <div id="csv-result" style="display:none;"></div>
+
+            <!-- format guide -->
+            <div style="margin-top:4px;">
+              <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">📋 Required Format</div>
+              <div style="overflow-x:auto;border-radius:8px;border:1px solid var(--border);">
+                <table style="width:100%;font-size:12px;">
+                  <thead>
+                    <tr style="background:rgba(255,255,255,0.04);">
+                      <th style="padding:8px 12px;text-align:left;color:var(--text-muted);font-weight:600;white-space:nowrap;">Column</th>
+                      <th style="padding:8px 12px;text-align:left;color:var(--text-muted);font-weight:600;">Required?</th>
+                      <th style="padding:8px 12px;text-align:left;color:var(--text-muted);font-weight:600;">Format / Example</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr style="border-top:1px solid var(--border);"><td style="padding:7px 12px;color:var(--accent);font-weight:700;">date</td><td style="padding:7px 12px;color:var(--danger);">✅ Required</td><td style="padding:7px 12px;color:var(--text-secondary);">YYYY-MM-DD &nbsp;→&nbsp; <code style="background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:3px;">2024-03-15</code></td></tr>
+                    <tr style="border-top:1px solid var(--border);"><td style="padding:7px 12px;color:var(--accent);font-weight:700;">description</td><td style="padding:7px 12px;color:var(--danger);">✅ Required</td><td style="padding:7px 12px;color:var(--text-secondary);">Any text &nbsp;→&nbsp; <code style="background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:3px;">Starbucks coffee</code></td></tr>
+                    <tr style="border-top:1px solid var(--border);"><td style="padding:7px 12px;color:var(--accent);font-weight:700;">amount</td><td style="padding:7px 12px;color:var(--danger);">✅ Required</td><td style="padding:7px 12px;color:var(--text-secondary);">Positive number &nbsp;→&nbsp; <code style="background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:3px;">4.50</code></td></tr>
+                    <tr style="border-top:1px solid var(--border);"><td style="padding:7px 12px;color:var(--accent);font-weight:700;">category</td><td style="padding:7px 12px;color:var(--danger);">✅ Required</td><td style="padding:7px 12px;color:var(--text-secondary);">Must match a category &nbsp;→&nbsp; <code style="background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:3px;">Food &amp; Dining</code></td></tr>
+                    <tr style="border-top:1px solid var(--border);"><td style="padding:7px 12px;color:var(--text-secondary);">notes</td><td style="padding:7px 12px;color:var(--text-muted);">Optional</td><td style="padding:7px 12px;color:var(--text-muted);">Free text &nbsp;→&nbsp; <code style="background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:3px;">morning coffee</code></td></tr>
+                    <tr style="border-top:1px solid var(--border);"><td style="padding:7px 12px;color:var(--text-secondary);">is_recurring</td><td style="padding:7px 12px;color:var(--text-muted);">Optional</td><td style="padding:7px 12px;color:var(--text-muted);"><code style="background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:3px;">true</code> or <code style="background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:3px;">false</code></td></tr>
+                    <tr style="border-top:1px solid var(--border);"><td style="padding:7px 12px;color:var(--text-secondary);">currency</td><td style="padding:7px 12px;color:var(--text-muted);">Optional</td><td style="padding:7px 12px;color:var(--text-muted);">3-letter code &nbsp;→&nbsp; <code style="background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:3px;">USD</code></td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div style="margin-top:10px;padding:10px 14px;background:rgba(255,255,255,0.03);border-radius:6px;border:1px solid var(--border);">
+                <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;font-weight:600;">EXAMPLE CSV CONTENT</div>
+                <pre style="font-size:11.5px;color:var(--text-secondary);margin:0;overflow-x:auto;line-height:1.7;">date,description,amount,category,notes,is_recurring,currency
+2024-03-15,Starbucks coffee,4.50,Food &amp; Dining,morning coffee,false,USD
+2024-03-15,Uber to office,12.00,Transportation,work commute,false,USD
+2024-03-16,Gym membership,49.99,Health &amp; Fitness,,true,USD
+2024-03-17,Grocery shopping,62.30,Food &amp; Dining,,false,USD</pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><span class="card-title">🤖 AI & ML Settings</span></div>
+            <div style="font-size:13px;color:var(--text-muted);line-height:1.8;">
+              <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+                <span>Auto-categorisation</span>
+                <span style="color:var(--accent);">✅ Enabled</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+                <span>Spending forecast</span>
+                <span style="color:var(--accent);">✅ Enabled</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+                <span>Anomaly detection</span>
+                <span style="color:var(--accent);">✅ Enabled</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:8px 0;">
+                <span>RAG AI assistant</span>
+                <span style="color:var(--accent);">✅ Enabled</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><span class="card-title">ℹ️ About</span></div>
+            <div style="font-size:13px;color:var(--text-muted);line-height:1.8;">
+              <div><strong style="color:var(--text-secondary);">SpendSense</strong> — AI Expense Tracker</div>
+              <div>Version 1.0.0</div>
+              <div style="margin-top:12px;padding:12px;background:var(--bg-card);border-radius:8px;border:1px solid var(--border);">
+                <div style="margin-bottom:6px;"><strong>🐍 Backend:</strong> Flask + SQLAlchemy + SQLite</div>
+                <div style="margin-bottom:6px;"><strong>🤖 RAG:</strong> TF-IDF + Cosine Similarity</div>
+                <div style="margin-bottom:6px;"><strong>🧠 ML:</strong> scikit-learn (Naive Bayes, Linear Regression, Isolation Forest)</div>
+                <div><strong>📊 Charts:</strong> Chart.js</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /content-area -->
+  </div><!-- /main-content -->
+</div><!-- /app-layout -->
+
+<!-- ── Add / Edit Expense Modal ───────────────────────── -->
+<div class="modal-overlay" id="expense-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="expense-modal-title">➕ Add Expense</h2>
+      <button class="modal-close modal-close-btn">✕</button>
+    </div>
+
+    <form id="expense-form">
+      <div class="form-row">
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Amount *</label>
+          <input type="number" class="form-control" id="expense-amount" min="0.01" step="0.01" placeholder="0.00" required>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Date *</label>
+          <input type="date" class="form-control" id="expense-date" required>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-top:14px;">
+        <label class="form-label">Description *</label>
+        <input type="text" class="form-control" id="expense-description" placeholder="e.g. Starbucks coffee" required autocomplete="off">
+      </div>
+
+      <!-- ML suggestion banner -->
+      <div id="ml-suggestion" style="display:none;align-items:center;justify-content:space-between;
+           padding:9px 14px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);
+           border-radius:8px;margin-bottom:12px;font-size:12.5px;">
+        <div>
+          🤖 <strong>ML suggests:</strong>
+          <span id="ml-cat-name" style="color:var(--accent);font-weight:700;"></span>
+          <span id="ml-cat-conf" style="color:var(--text-muted);"></span>
+        </div>
+        <button type="button" class="btn btn-success btn-sm" id="ml-apply-btn">Apply ✓</button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Category *</label>
+        <select class="form-control category-select" id="expense-category" required>
+          <option value="">Select category…</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <input type="text" class="form-control" id="expense-notes" placeholder="Optional notes…">
+      </div>
+
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;">
+        <input type="checkbox" id="expense-recurring" style="width:16px;height:16px;accent-color:var(--primary);">
+        <label for="expense-recurring" class="form-label" style="margin-bottom:0;text-transform:none;letter-spacing:0;cursor:pointer;">
+          Recurring expense
+        </label>
+      </div>
+
+      <div style="display:flex;gap:10px;">
+        <button type="submit" class="btn btn-primary" id="save-expense-btn" style="flex:1;justify-content:center;">
+          💾 Save Expense
+        </button>
+        <button type="button" class="btn btn-secondary modal-close-btn" style="flex:0;">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── Clear Data Modal ───────────────────────── -->
+<div class="modal-overlay" id="clear-data-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="clear-data-modal-title">🗑️ Clear Data</h2>
+      <button class="modal-close modal-close-btn" id="clear-data-close">✕</button>
+    </div>
+
+    <form id="clear-data-form">
+      <div class="form-group">
+        <label class="form-label">What do you want to delete?</label>
+        <select class="form-control" id="clear-mode" required>
+          <option value="all">Everything (All Data)</option>
+          <option value="date_range">Specific Date Range</option>
+          <option value="single_date">Single Date</option>
+          <option value="category">Specific Category</option>
+        </select>
+      </div>
+
+      <!-- Specific Date Range Group -->
+      <div id="clear-date-range-group" style="display:none;" class="form-row">
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">From Date *</label>
+          <input type="date" class="form-control" id="clear-date-from">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">To Date *</label>
+          <input type="date" class="form-control" id="clear-date-to">
+        </div>
+      </div>
+
+      <!-- Single Date Group -->
+      <div id="clear-single-date-group" style="display:none;" class="form-group">
+        <label class="form-label">Select Date *</label>
+        <input type="date" class="form-control" id="clear-single-date">
+      </div>
+
+      <!-- Category Group -->
+      <div id="clear-category-group" style="display:none;" class="form-group">
+        <label class="form-label">Select Category *</label>
+        <select class="form-control category-select" id="clear-category">
+          <option value="">Select category…</option>
+        </select>
+      </div>
+      
+      <!-- Clear Budgets Checkbox (Only for "All Data") -->
+      <div id="clear-budgets-group" style="display:flex;align-items:center;gap:8px;margin-bottom:20px;">
+        <input type="checkbox" id="clear-budgets" checked style="width:16px;height:16px;accent-color:var(--danger);">
+        <label for="clear-budgets" class="form-label" style="margin-bottom:0;text-transform:none;letter-spacing:0;cursor:pointer;">
+          Also delete all budgets
+        </label>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:10px;">
+        <button type="submit" class="btn btn-danger" id="confirm-clear-btn" style="flex:1;justify-content:center;">
+          🗑️ Delete Data
+        </button>
+        <button type="button" class="btn btn-secondary modal-close-btn" id="cancel-clear-btn" style="flex:0;">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+<!-- Scripts (ES modules) -->
+<script type="module" src="/static/js/app.js"></script>
+
+</body>
+</html>
